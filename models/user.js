@@ -1,8 +1,9 @@
-const mongoose = require("mongoose");
-const { isEmail, isMobilePhone } = require("validator");
-const uniqueValidator = require("mongoose-unique-validator");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const mongoose = require('mongoose');
+const { isEmail, isMobilePhone } = require('validator');
+const uniqueValidator = require('mongoose-unique-validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { transporter } = require('../email/nodemailer');
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -18,16 +19,16 @@ const userSchema = new mongoose.Schema({
     unique: true,
     validate: {
       validator: isEmail,
-      message: "Please enter a valid email id"
+      message: 'Please enter a valid email id'
     }
   },
   mobileNumber: {
     type: String,
     validate: {
       validator: function(number) {
-        return isMobilePhone(number, "en-IN");
+        return isMobilePhone(number, 'en-IN');
       },
-      message: "Please enter a valid phone number"
+      message: 'Please enter a valid phone number'
     }
   },
   gender: {
@@ -61,61 +62,66 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.plugin(uniqueValidator, {
-  message: "This email id is already in use."
+  message: 'This email id is already in use.'
 });
 
-userSchema.methods.generateAuthToken = function() {
+userSchema.methods.generateAuthToken = function(access, expiresIn) {
   const user = this;
-  const access = "auth";
-  const token = jwt.sign({ _id: user._id.toHexString(), access }, "abc123");
-  user.tokens.push({ access, token });
-  return new Promise((resolve, reject) => {
-    resolve(token);
+  // const access = 'auth';
+  const token = jwt.sign({ _id: user._id.toHexString(), access }, 'abc123', {
+    expiresIn
   });
-  // return user.save().then(() => token);
+  user.tokens.push({ access, token });
+  // return new Promise((resolve, reject) => {
+  //   resolve(token);
+  // });
+  return user.save().then(() => token);
 };
 
-userSchema.statics.findByToken = function(cookie) {
+userSchema.statics.findByToken = function(cookie, type) {
   const User = this;
   let decoded = {};
-  let token = "";
+  let token = '';
   try {
-    token = cookie.SESSIONID;
-    decoded = jwt.verify(token, "abc123");
+    token = cookie.SESSIONID || cookie;
+    decoded = jwt.verify(token, 'abc123');
     console.log(decoded);
   } catch (e) {
-    return Promise.reject();
+    return Promise.reject(e);
   }
   return User.findOne({
     _id: decoded._id,
-    "tokens.token": token,
-    "tokens.access": "auth"
+    'tokens.token': token,
+    'tokens.access': type
   });
 };
 
 userSchema.statics.findByCredentials = function(email, password) {
   const User = this;
-  return User.findOne({ email })
-    .then(user => {
-      if (user) {
-        return new Promise((resolve, reject) => {
-          return bcrypt.compare(password, user.password, (err, verified) => {
-            if (verified) {
+  return User.findOne({ email }).then(user => {
+    if (user) {
+      return new Promise((resolve, reject) => {
+        return bcrypt.compare(password, user.password, (err, verified) => {
+          if (verified) {
+            if (user.isActivated) {
               resolve(user);
             } else {
-              reject();
+              reject('Account not activated by admin.');
             }
-          });
+          } else {
+            reject();
+          }
         });
-      } else {
-        return Promise.reject();
-      }
-    });
+      });
+    } else {
+      return Promise.reject();
+    }
+  });
 };
 
-userSchema.pre("save", function(next) {
+userSchema.pre('save', function(next) {
   const user = this;
-  if (user.isModified("password")) {
+  if (user.isModified('password')) {
     bcrypt.genSalt(10, (err, salt) => {
       if (!err) {
         bcrypt.hash(user.password, salt, (err, hash) => {
@@ -131,14 +137,8 @@ userSchema.pre("save", function(next) {
   }
 });
 
-userSchema.post("save", function(doc, next) {
-  const user = this;
-  // if (!user.isModified('email'))
-  const email = user.email;
-  console.log('Reached post hook with', doc.email);
-  next();
-});
+// userSchema.post('save', );
 
-var User = mongoose.model("User", userSchema);
+var User = mongoose.model('User', userSchema);
 
 module.exports = { User };

@@ -1,9 +1,10 @@
-const jwt = require('jsonwebtoken');
+const testFunc = function(obj) {
+    const val = obj.name || obj;
+    console.log(val);
+};
 
-
-token = jwt.sign({
-    id: 1,
-    access: 'auth'
-}, 'abc123');
-
-console.log(token);
+myObj = {};
+myObj.name = 'inside obj';
+testFunc(myObj);
+val = 'abc';
+testFunc(val);
