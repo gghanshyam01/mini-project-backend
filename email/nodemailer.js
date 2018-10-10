@@ -30,7 +30,7 @@ const sendEmail = (user) => {
         </ul>
         <p>Please click on the below link to allow access:</p>
         <br>
-        localhost:3000/api/auth/users/activate/${token}`
+        localhost:4200/activate/${token}`
         };
         transporter.sendMail(adminMailOptions, (err, res) => {
           if (err) {

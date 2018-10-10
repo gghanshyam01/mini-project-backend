@@ -1,13 +1,17 @@
 // @ts-check
+// @ts-ignore
 const express = require('express');
+// @ts-ignore
 const morgan = require('morgan');
+// @ts-ignore
 const cookieParser = require('cookie-parser');
 
 const { mongooseOptions, URL } = require('./configs/mongoose.config');
 const mongoose = require('mongoose');
 const { User } = require('./models/user');
 const { authenticate } = require('./middlewares/authenticate');
-const {sendEmail}  = require('./email/nodemailer');
+const { sendEmail } = require('./email/nodemailer');
+const app = express();
 
 mongoose.set('useCreateIndex', true);
 
@@ -19,8 +23,6 @@ mongoose
   )
   .then(res => console.debug('Connected to MongoDB'))
   .catch(err => console.debug('Error while connecting to MongoDB'));
-
-const app = express();
 
 const PORT = process.env.PORT || 3000;
 
@@ -63,12 +65,13 @@ const registerUser = (req, res) => {
     .save()
     .then(() => {
       sendEmail(user);
-      res.status(201).send({ msg: 'User created successfully' });
+      res.status(200).send({ 
+        msg: 'User created successfully. You\'ll be able to login when Admin activates your account'
+      });
     })
     .catch(err => {
-      console.log(err);
       res.status(400).send(err);
-    }); // dont change 'err' to 'error'.
+    });
 };
 
 app.get('/api/users/me', authenticate, (req, res) => {
