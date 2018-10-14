@@ -5,12 +5,12 @@ const authenticate = (req, res, next) => {
     // @ts-ignore
     User.findByToken(token, 'auth').then((user) => {
         if (!user) {
-            return Promise.reject();
+            return Promise.reject('User not found.');
         }
         req.user = user;
-        req.token = token.SESSIONID;
+        // req.token = token.SESSIONID;
         next();
-    }).catch((e) => res.status(401).send());
+    }).catch((e) => res.status(401).send('User not Authorized.'));
 };
 
 module.exports = { authenticate };

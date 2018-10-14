@@ -3,7 +3,6 @@ const { isEmail, isMobilePhone } = require('validator');
 const uniqueValidator = require('mongoose-unique-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { transporter } = require('../email/nodemailer');
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -78,6 +77,15 @@ userSchema.methods.generateAuthToken = function(access, expiresIn) {
   return user.save().then(() => token);
 };
 
+userSchema.methods.deleteToken = function(token) {
+  const user = this;
+  return user.updateOne({
+    $pull: {
+      tokens: { token }
+    }
+  });
+};
+
 userSchema.statics.findByToken = function(cookie, type) {
   const User = this;
   let decoded = {};
@@ -85,9 +93,8 @@ userSchema.statics.findByToken = function(cookie, type) {
   try {
     token = cookie.SESSIONID || cookie;
     decoded = jwt.verify(token, 'abc123');
-    console.log(decoded);
   } catch (e) {
-    return Promise.reject(e);
+    return Promise.reject('User not found.');
   }
   return User.findOne({
     _id: decoded._id,

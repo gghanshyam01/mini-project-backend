@@ -34,6 +34,20 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: false }));
 
+const logOutUser = (req, res) => {
+  // @ts-ignore
+  req.user
+    .deleteToken(req.cookies.SESSIONID)
+    .then(status => {
+      res.clearCookie('SESSIONID');
+      res.status(200).send();
+    })
+    .catch(err => {
+      console.log('error: ', err);
+      res.status(400).send(err);
+    });
+};
+
 const loginUser = (req, res) => {
   const user = req.body;
   // @ts-ignore
@@ -51,11 +65,11 @@ const loginUser = (req, res) => {
     })
     .catch(error => {
       if (error) {
-        res.status(403).send({ error });
+        res.status(403).send(error);
+        console.log(error);
+      } else {
+        res.status(401).send('Email or password incorrect');
       }
-      res.status(401).send({
-        error: 'Email or password incorrect'
-      });
     });
 };
 
@@ -65,8 +79,9 @@ const registerUser = (req, res) => {
     .save()
     .then(() => {
       sendEmail(user);
-      res.status(200).send({ 
-        msg: 'User created successfully. You\'ll be able to login when Admin activates your account'
+      res.status(200).send({
+        msg:
+          "User account created successfully. You'll be able to login if Admin activates your account within 7 days"
       });
     })
     .catch(err => {
@@ -74,18 +89,10 @@ const registerUser = (req, res) => {
     });
 };
 
-app.get('/api/users/me', authenticate, (req, res) => {
+const activateUser = (req, res) => {
+  const token = req.body.token;
   // @ts-ignore
-  res.send(req.user);
-});
-
-app.post('/api/auth/users/register', registerUser);
-
-app.post('/api/auth/users/login', loginUser);
-
-app.post('/api/auth/users/activate/:token', (req, res) => {
-  // @ts-ignore
-  User.findByToken(req.params.token, 'accountActivate')
+  User.findByToken(token, 'accountActivate')
     .then(user => {
       if (!user) {
         return Promise.reject('No user exists');
@@ -94,11 +101,25 @@ app.post('/api/auth/users/activate/:token', (req, res) => {
       return user.save();
     })
     .then(doc => {
-      res.send({ msg: 'User account activated. Please login to continue.' });
+      res.send({ msg: 'User account activated successfully.' });
     })
     .catch(error => {
-      res.status(500).send({ error });
+      res.status(404).send(error);
     });
+};
+
+app.get('/api/users/me', authenticate, (req, res) => {
+  // @ts-ignore
+  const user = req.user;
+  res.status(200).json(user);
 });
+
+app.post('/api/auth/users/register', registerUser);
+
+app.post('/api/auth/users/login', loginUser);
+
+app.post('/api/auth/users/activate', activateUser);
+
+app.delete('/api/auth/users/me/logout', authenticate, logOutUser);
 
 app.listen(PORT, () => console.log(`Server up on port ${PORT}`));

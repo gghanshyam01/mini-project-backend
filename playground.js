@@ -1,10 +1,7 @@
-const testFunc = function(obj) {
-    const val = obj.name || obj;
-    console.log(val);
-};
 
-myObj = {};
-myObj.name = 'inside obj';
-testFunc(myObj);
-val = 'abc';
-testFunc(val);
+const express = require('express');
+const app = express();
+
+app.get('justatest', (req, res, next) => {
+    next();
+});
