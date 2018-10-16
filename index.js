@@ -1,16 +1,15 @@
 // @ts-check
-// @ts-ignore
+
 const express = require('express');
-// @ts-ignore
 const morgan = require('morgan');
-// @ts-ignore
 const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
 
 const { mongooseOptions, URL } = require('./configs/mongoose.config');
-const mongoose = require('mongoose');
 const { User } = require('./models/user');
 const { authenticate } = require('./middlewares/authenticate');
 const { sendEmail } = require('./email/nodemailer');
+
 const app = express();
 
 mongoose.set('useCreateIndex', true);

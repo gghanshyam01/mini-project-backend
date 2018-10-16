@@ -3,6 +3,7 @@ const { isEmail, isMobilePhone } = require('validator');
 const uniqueValidator = require('mongoose-unique-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const JWT_SECRET = require('../configs/env.config.json').JWT_SECRET;
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -67,7 +68,7 @@ userSchema.plugin(uniqueValidator, {
 userSchema.methods.generateAuthToken = function(access, expiresIn) {
   const user = this;
   // const access = 'auth';
-  const token = jwt.sign({ _id: user._id.toHexString(), access }, 'abc123', {
+  const token = jwt.sign({ _id: user._id.toHexString(), access }, JWT_SECRET, {
     expiresIn
   });
   user.tokens.push({ access, token });
@@ -92,7 +93,7 @@ userSchema.statics.findByToken = function(cookie, type) {
   let token = '';
   try {
     token = cookie.SESSIONID || cookie;
-    decoded = jwt.verify(token, 'abc123');
+    decoded = jwt.verify(token, JWT_SECRET);
   } catch (e) {
     return Promise.reject('User not found.');
   }
