@@ -4,6 +4,8 @@ const express = require('express');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const fs = require('fs');
 
 const { mongooseOptions, URL } = require('./configs/mongoose.config');
 const { User } = require('./models/user');
@@ -11,6 +13,16 @@ const { authenticate } = require('./middlewares/authenticate');
 const { sendEmail } = require('./email/nodemailer');
 
 const app = express();
+
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function(req, file, cb) {
+    cb(null, file.originalname);
+  }
+});
+const upload = multer({ storage });
 
 mongoose.set('useCreateIndex', true);
 
@@ -31,7 +43,7 @@ app.use(cookieParser());
 
 app.use(express.json());
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 const logOutUser = (req, res) => {
   // @ts-ignore
@@ -73,7 +85,12 @@ const loginUser = (req, res) => {
 };
 
 const registerUser = (req, res) => {
+  req.body.confirmPassword = undefined;
   const user = new User(req.body);
+  const file = req.file;
+  user.idProofImage.data = fs.readFileSync(file.path);
+  user.idProofImage.contentType = 'image/png';
+  user.isAdmin = true;
   user
     .save()
     .then(() => {
@@ -81,6 +98,12 @@ const registerUser = (req, res) => {
       res.status(200).send({
         msg:
           "User account created successfully. You'll be able to login if Admin activates your account within 7 days"
+      });
+      fs.unlink(`uploads/${file.originalname}`, (err) => {
+        if (err) {
+          return console.log('Failed to delete user image');
+        }
+        console.log('Image deleted');
       });
     })
     .catch(err => {
@@ -113,7 +136,7 @@ app.get('/api/users/me', authenticate, (req, res) => {
   res.status(200).json(user);
 });
 
-app.post('/api/auth/users/register', registerUser);
+app.post('/api/auth/users/register', upload.single('img'), registerUser);
 
 app.post('/api/auth/users/login', loginUser);
 

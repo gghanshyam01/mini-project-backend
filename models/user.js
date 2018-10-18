@@ -47,6 +47,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isAdmin: {
+    type: Boolean,
+    required: true
+  },
+  idProofImage: {
+    data: Buffer,
+    contentType: String
+  },
   tokens: [
     {
       access: {
@@ -80,7 +88,7 @@ userSchema.methods.generateAuthToken = function(access, expiresIn) {
 
 userSchema.methods.deleteToken = function(token) {
   const user = this;
-  return user.updateOne({
+  return user.update({
     $pull: {
       tokens: { token }
     }
