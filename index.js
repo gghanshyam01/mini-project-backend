@@ -88,9 +88,15 @@ const registerUser = (req, res) => {
   req.body.confirmPassword = undefined;
   const user = new User(req.body);
   const file = req.file;
-  user.idProofImage.data = fs.readFileSync(file.path);
-  user.idProofImage.contentType = 'image/png';
+  if (!file) {
+    return res.status(400).send('Please upload a valid ID proof Image');
+  }
   user.isAdmin = true;
+  user.imageUrl = '';
+  const extArray = file.originalname.split('.');
+  const ext = extArray[extArray.length - 1];
+  const fileName = `${user._id}.${ext}`;
+  user.imageUrl = fileName;
   user
     .save()
     .then(() => {
@@ -99,11 +105,11 @@ const registerUser = (req, res) => {
         msg:
           "User account created successfully. You'll be able to login if Admin activates your account within 7 days"
       });
-      fs.unlink(`uploads/${file.originalname}`, (err) => {
+      fs.rename(`uploads/${file.originalname}`, `uploads/${fileName}`, err => {
         if (err) {
-          return console.log('Failed to delete user image');
+          return console.log('Error renaming file');
         }
-        console.log('Image deleted');
+        console.log('Image mapped to user');
       });
     })
     .catch(err => {
@@ -131,8 +137,10 @@ const activateUser = (req, res) => {
 };
 
 app.get('/api/users/me', authenticate, (req, res) => {
+  console.log('inside route');
   // @ts-ignore
   const user = req.user;
+  console.log('Sending res');
   res.status(200).json(user);
 });
 

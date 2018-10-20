@@ -51,10 +51,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     required: true
   },
-  idProofImage: {
-    data: Buffer,
-    contentType: String
+  imageUrl: {
+    type: String,
+    required: true
   },
+  // idProofImage: {
+  //   data: Buffer,
+  //   contentType: String
+  // },
   tokens: [
     {
       access: {
@@ -88,7 +92,7 @@ userSchema.methods.generateAuthToken = function(access, expiresIn) {
 
 userSchema.methods.deleteToken = function(token) {
   const user = this;
-  return user.update({
+  return user.updateOne({
     $pull: {
       tokens: { token }
     }
@@ -99,12 +103,14 @@ userSchema.statics.findByToken = function(cookie, type) {
   const User = this;
   let decoded = {};
   let token = '';
+  console.log('Verifying token');
   try {
     token = cookie.SESSIONID || cookie;
     decoded = jwt.verify(token, JWT_SECRET);
   } catch (e) {
     return Promise.reject('User not found.');
   }
+  console.log('FInding user with decoded data');
   return User.findOne({
     _id: decoded._id,
     'tokens.token': token,
@@ -154,7 +160,6 @@ userSchema.pre('save', function(next) {
 });
 
 // userSchema.post('save', );
-
 var User = mongoose.model('User', userSchema);
 
 module.exports = { User };
