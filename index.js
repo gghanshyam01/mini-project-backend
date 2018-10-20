@@ -60,19 +60,23 @@ const logOutUser = (req, res) => {
 };
 
 const loginUser = (req, res) => {
-  const user = req.body;
+  let user = req.body;
   // @ts-ignore
   User.findByCredentials(user.email, user.password)
-    .then(user => {
-      return user.generateAuthToken('auth', '10h');
+    .then(userData => {
+      user = userData;
+      return userData.generateAuthToken('auth', '10h');
     })
     .then(token => {
+      user.password = undefined;
+      user.tokens = undefined;
+      user.isActivated = undefined;
       res.cookie('SESSIONID', token, {
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 10,
         secure: false
       });
-      res.send({ token, expiresIn: '10 hrs' });
+      res.send(user);
     })
     .catch(error => {
       if (error) {
