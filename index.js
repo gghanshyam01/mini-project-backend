@@ -91,8 +91,6 @@ const registerUser = (req, res) => {
   if (!file) {
     return res.status(400).send('Please upload a valid ID proof Image');
   }
-  user.isAdmin = true;
-  user.imageUrl = '';
   const extArray = file.originalname.split('.');
   const ext = extArray[extArray.length - 1];
   const fileName = `${user._id}.${ext}`;
