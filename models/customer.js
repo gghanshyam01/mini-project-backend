@@ -1,28 +1,27 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
-  vehicleNo: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  customerName: {
+  'Vehicle Number': {
     type: String,
     required: true
   },
-  contactNo: {
+  'Customer Name': {
     type: String,
     required: true
   },
-  carMake: {
+  'Customer Contact Number': {
     type: String,
     required: true
   },
-  carModel: {
+  'Car Make': {
     type: String,
     required: true
   },
-  vehicleType: {
+  'Car Model': {
+    type: String,
+    required: true
+  },
+  'Vehicle Type': {
     type: String,
     required: true
   }

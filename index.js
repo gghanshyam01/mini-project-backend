@@ -4,14 +4,25 @@ const express = require('express');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
+const XLSX = require('xlsx');
+const multer = require('multer');
 
 const { mongooseOptions, URL } = require('./configs/mongoose.config');
 const { authenticate } = require('./middlewares/authenticate');
-
 const { authRoutes } = require('./routers/auth-routes');
+const { Customer } = require('./models/customer');
 
 const app = express();
 
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function(req, file, cb) {
+    cb(null, file.originalname);
+  }
+});
+const upload = multer({ storage });
 mongoose.set('useCreateIndex', true);
 
 // @ts-ignore
@@ -39,6 +50,23 @@ app.get('/api/users/me', authenticate, (req, res) => {
   const user = req.user;
   console.log('Sending res');
   res.status(200).json(user);
+});
+
+app.post('/api/users/uploads/customer', upload.single('file'), (req, res) => {
+  const file = req.file;
+  const workbook = XLSX.readFile('uploads/' + file.originalname);
+  const customerData = XLSX.utils.sheet_to_json(
+    workbook.Sheets[workbook.SheetNames[0]]
+  );
+  // console.log(customerData);
+  Customer.insertMany(customerData)
+    .then(status => {
+      res.send(status);
+    })
+    .catch(err => {
+      console.log(err);
+      res.send(err);
+    });
 });
 
 app.use('/api/auth/users', authRoutes);
