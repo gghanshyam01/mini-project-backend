@@ -135,12 +135,14 @@ app.patch(`/api/users/:_id`, authenticate, (req, res) => {
   const _id = req.params._id;
   // return console.log(req.body);
   const custData = req.body;
+  const idArr = [];
   custData.forEach(cust => {
-    cust._id = mongoose.Types.ObjectId(cust._id);
+    idArr.push(cust._id);
+    console.log(cust._id);
   });
   User.findByIdAndUpdate(
     _id,
-    { $push: { customers: { $each: custData } } },
+    { $push: { customers: { $each: idArr } } },
     (err, status) => {
       if (err) {
         console.log(err);
@@ -165,6 +167,68 @@ app.patch(`/api/users/:_id`, authenticate, (req, res) => {
       }
     );
   });
+});
+
+app.get(`/api/users/me/customers`, authenticate, (req, res) => {
+  // @ts-ignore
+  const _id = req.user._id;
+  User.findOne({ _id: '' + _id })
+    .populate('customers')
+    .exec(function(err, resp) {
+      if (err) {
+        console.log('Error', err);
+        return res.status(500).send('Error sending data');
+      }
+      console.log(resp.customers);
+      res.send(resp.customers);
+    });
+});
+
+app.get(`/api/users/me/customers/finished`, authenticate, (req, res) => {
+  // @ts-ignore
+  const _id = req.user._id;
+  User.findOne({ _id: '' + _id })
+    .populate({
+      path: 'customers',
+      match: { finished: { $eq: true } }
+    })
+    .exec(function(err, resp) {
+      if (err) {
+        console.log('Error', err);
+        return res.status(500).send('Error sending data');
+      }
+      console.log(resp.customers);
+      res.send(resp.customers);
+    });
+});
+app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
+  // @ts-ignore
+  const _id = req.user._id;
+  User.findOne({ _id: '' + _id })
+    .populate({
+      path: 'customers',
+      match: { newlyAssigned: { $eq: true } }
+    })
+    .exec(function(err, resp) {
+      if (err) {
+        console.log('Error', err);
+        return res.status(500).send('Error sending data');
+      }
+      res.send(resp.customers);
+      const custArr = resp.customers;
+      custArr.forEach(c => {
+        Customer.findByIdAndUpdate(
+          c._id,
+          { $set: { newlyAssigned: false } },
+          (err, status) => {
+            console.log(status, 'Newly Ass');
+            if (err) {
+              console.log('Error in newly assigned');
+            }
+          }
+        );
+      });
+    });
 });
 
 app.use('/api/auth/users', authRoutes);
