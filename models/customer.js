@@ -1,30 +1,59 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
-  'Vehicle Number': {
+  vehicleNumber: {
     type: String,
     required: true
   },
-  'Customer Name': {
+  customerName: {
     type: String,
     required: true
   },
-  'Customer Contact Number': {
+  contactNumber: {
     type: String,
     required: true
   },
-  'Car Make': {
+  carMake: {
     type: String,
     required: true
   },
-  'Car Model': {
+  carModel: {
     type: String,
     required: true
   },
-  'Vehicle Type': {
+  vehicleType: {
     type: String,
     required: true
-  }
+  },
+  isAssignedToUser: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
+  finished: {
+    type: Boolean,
+    default: false
+  },
+  newlyAssigned: {
+    type: Boolean,
+    default: true
+  },
+  feedback: [
+    {
+      comment: {
+        type: String
+      },
+      nextDate: {
+        type: String
+      }
+    }
+  ],
+  users: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  ]
 });
 
 var Customer = mongoose.model('Customer', customerSchema);

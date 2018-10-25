@@ -25,6 +25,7 @@ const registerUser = (req, res) => {
   if (!file) {
     return res.status(400).send('Please upload a valid ID proof Image');
   }
+  console.log(req.body);
   const extArray = file.originalname.split('.');
   const ext = extArray[extArray.length - 1];
   const fileName = `${user._id}.${ext}`;
