@@ -103,13 +103,15 @@ app.get(`/api/customers`, authenticate, (req, res) => {
   });
 });
 
-app.post(`/api/customers`, authenticate, (req, res) => {
+app.post(`/api/customers/filter`, authenticate, (req, res) => {
   // @ts-ignore
   if (!req.user.isAdmin) {
     return res.status(403).send('Insufficient privileges');
   }
-  const k = req.params.key;
-  const value = req.params.value;
+  for (let k in req.body) {
+    let val = req.body[k];
+    req.body[k] = new RegExp(val, 'i');
+  }
   const data = Object.assign({ isAssignedToUser: false }, req.body);
   Customer.find(data, (err, docs) => {
     if (err) {
@@ -138,14 +140,12 @@ app.patch(`/api/users/:_id`, authenticate, (req, res) => {
   const idArr = [];
   custData.forEach(cust => {
     idArr.push(cust._id);
-    console.log(cust._id);
   });
   User.findByIdAndUpdate(
     _id,
     { $push: { customers: { $each: idArr } } },
     (err, status) => {
       if (err) {
-        console.log(err);
         res.status(500).send('Error updating value');
       } else {
         res.send('Assigned customer to user successfully');
@@ -179,7 +179,6 @@ app.get(`/api/users/me/customers`, authenticate, (req, res) => {
         console.log('Error', err);
         return res.status(500).send('Error sending data');
       }
-      console.log(resp.customers);
       res.send(resp.customers);
     });
 });
@@ -197,7 +196,6 @@ app.get(`/api/users/me/customers/finished`, authenticate, (req, res) => {
         console.log('Error', err);
         return res.status(500).send('Error sending data');
       }
-      console.log(resp.customers);
       res.send(resp.customers);
     });
 });
@@ -221,7 +219,6 @@ app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
           c._id,
           { $set: { newlyAssigned: false } },
           (err, status) => {
-            console.log(status, 'Newly Ass');
             if (err) {
               console.log('Error in newly assigned');
             }
@@ -229,6 +226,37 @@ app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
         );
       });
     });
+});
+
+app.get('/api/customers/charts', authenticate, (req, res) => {
+  let fCount = 0;
+  let totalCount = 0;
+
+  Customer.countDocuments({}, (err, count) => {
+    if (err) {
+      return res.status(500).send('Error occurred');
+    }
+    totalCount = count;
+    Customer.count({ finished: true }, (err, finishCount) => {
+      if (err) {
+        return res.status(500).send('Error occurred');
+      }
+      fCount = finishCount;
+      let assignedCount = 0;
+      Customer.count({ isAssignedToUser: true }, (err, count) => {
+        if (err) {
+          return res.status(500).send('Error occurred');
+        }
+        assignedCount = count;
+        res.send({
+          finishedCount: fCount || 0,
+          assignedCount: assignedCount,
+          totalCount: totalCount,
+          remainingCount: totalCount - assignedCount
+        });
+      });
+    });
+  });
 });
 
 app.use('/api/auth/users', authRoutes);
