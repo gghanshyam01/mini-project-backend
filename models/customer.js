@@ -43,6 +43,9 @@ const customerSchema = new mongoose.Schema({
       comment: {
         type: String
       },
+      commentDate: {
+        type: String
+      },
       nextDate: {
         type: String
       }

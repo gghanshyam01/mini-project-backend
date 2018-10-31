@@ -125,12 +125,16 @@ app.get(`/api/users`, authenticate, (req, res) => {
   if (!req.user.isAdmin) {
     return res.status(403).send('Insufficient privileges');
   }
-  User.find({ isAdmin: false }, '_id firstName lastName', (err, docs) => {
-    if (err) {
-      return res.status(500).send('Error fetching customers');
+  User.find(
+    { isAdmin: false, isActivated: true },
+    '_id firstName lastName',
+    (err, docs) => {
+      if (err) {
+        return res.status(500).send('Error fetching customers');
+      }
+      res.send(docs);
     }
-    res.send(docs);
-  });
+  );
 });
 
 app.patch(`/api/users/:_id`, authenticate, (req, res) => {
@@ -183,6 +187,7 @@ app.get(`/api/users/me/customers`, authenticate, (req, res) => {
     });
 });
 
+// Get customers with status finished
 app.get(`/api/users/me/customers/finished`, authenticate, (req, res) => {
   // @ts-ignore
   const _id = req.user._id;
@@ -199,6 +204,8 @@ app.get(`/api/users/me/customers/finished`, authenticate, (req, res) => {
       res.send(resp.customers);
     });
 });
+
+// To get notification-like newly assigned list
 app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
   // @ts-ignore
   const _id = req.user._id;
@@ -228,6 +235,7 @@ app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
     });
 });
 
+// To get info for displaying status chart
 app.get('/api/customers/charts', authenticate, (req, res) => {
   let fCount = 0;
   let totalCount = 0;
