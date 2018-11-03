@@ -10,6 +10,10 @@ const fs = require('fs');
 
 const { mongooseOptions, URL } = require('./configs/mongoose.config');
 const { authenticate } = require('./middlewares/authenticate');
+const {
+  shouldBeAdmin,
+  shouldBeUser
+} = require('./middlewares/check-user-type');
 const { authRoutes } = require('./routers/auth-routes');
 const { Customer } = require('./models/customer');
 const { User } = require('./models/user');
@@ -57,12 +61,9 @@ app.get('/api/users/me', authenticate, (req, res) => {
 app.post(
   '/api/users/uploads/customer',
   authenticate,
+  shouldBeAdmin,
   upload.single('file'),
   (req, res) => {
-    // @ts-ignore
-    if (!req.user.isAdmin) {
-      return res.status(403).send('Insufficient privileges');
-    }
     const file = req.file;
     const fileType =
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -90,11 +91,7 @@ app.post(
   }
 );
 
-app.get(`/api/customers`, authenticate, (req, res) => {
-  // @ts-ignore
-  if (!req.user.isAdmin) {
-    return res.status(403).send('Insufficient privileges');
-  }
+app.get(`/api/customers`, authenticate, shouldBeAdmin, (req, res) => {
   Customer.find({ isAssignedToUser: false }, (err, docs) => {
     if (err) {
       return res.status(500).send('Error fetching customers');
@@ -103,11 +100,7 @@ app.get(`/api/customers`, authenticate, (req, res) => {
   });
 });
 
-app.post(`/api/customers/filter`, authenticate, (req, res) => {
-  // @ts-ignore
-  if (!req.user.isAdmin) {
-    return res.status(403).send('Insufficient privileges');
-  }
+app.post(`/api/customers/filter`, authenticate, shouldBeAdmin, (req, res) => {
   for (let k in req.body) {
     let val = req.body[k];
     req.body[k] = new RegExp(val, 'i');
@@ -120,11 +113,7 @@ app.post(`/api/customers/filter`, authenticate, (req, res) => {
     res.send(docs);
   });
 });
-app.get(`/api/users`, authenticate, (req, res) => {
-  // @ts-ignore
-  if (!req.user.isAdmin) {
-    return res.status(403).send('Insufficient privileges');
-  }
+app.get(`/api/users`, authenticate, shouldBeAdmin, (req, res) => {
   User.find(
     { isAdmin: false, isActivated: true },
     '_id firstName lastName',
@@ -137,7 +126,7 @@ app.get(`/api/users`, authenticate, (req, res) => {
   );
 });
 
-app.patch(`/api/users/:_id`, authenticate, (req, res) => {
+app.patch(`/api/users/:_id`, authenticate, shouldBeAdmin, (req, res) => {
   const _id = req.params._id;
   // return console.log(req.body);
   const custData = req.body;
@@ -177,7 +166,7 @@ app.get(`/api/users/me/customers`, authenticate, (req, res) => {
   // @ts-ignore
   const _id = req.user._id;
   User.findOne({ _id: '' + _id })
-    .populate('customers')
+    .populate({ path: 'customers', match: { finished: { $eq: false } } })
     .exec(function(err, resp) {
       if (err) {
         console.log('Error', err);
@@ -188,55 +177,65 @@ app.get(`/api/users/me/customers`, authenticate, (req, res) => {
 });
 
 // Get customers with status finished
-app.get(`/api/users/me/customers/finished`, authenticate, (req, res) => {
-  // @ts-ignore
-  const _id = req.user._id;
-  User.findOne({ _id: '' + _id })
-    .populate({
-      path: 'customers',
-      match: { finished: { $eq: true } }
-    })
-    .exec(function(err, resp) {
-      if (err) {
-        console.log('Error', err);
-        return res.status(500).send('Error sending data');
-      }
-      res.send(resp.customers);
-    });
-});
+app.get(
+  `/api/users/me/customers/finished`,
+  authenticate,
+  shouldBeUser,
+  (req, res) => {
+    // @ts-ignore
+    const _id = req.user._id;
+    User.findOne({ _id: '' + _id })
+      .populate({
+        path: 'customers',
+        match: { finished: { $eq: true } }
+      })
+      .exec(function(err, resp) {
+        if (err) {
+          console.log('Error', err);
+          return res.status(500).send('Error sending data');
+        }
+        res.send(resp.customers);
+      });
+  }
+);
 
 // To get notification-like newly assigned list
-app.get(`/api/users/me/customers/newlyassigned`, authenticate, (req, res) => {
-  // @ts-ignore
-  const _id = req.user._id;
-  User.findOne({ _id: '' + _id })
-    .populate({
-      path: 'customers',
-      match: { newlyAssigned: { $eq: true } }
-    })
-    .exec(function(err, resp) {
-      if (err) {
-        console.log('Error', err);
-        return res.status(500).send('Error sending data');
-      }
-      res.send(resp.customers);
-      const custArr = resp.customers;
-      custArr.forEach(c => {
-        Customer.findByIdAndUpdate(
-          c._id,
-          { $set: { newlyAssigned: false } },
-          (err, status) => {
-            if (err) {
-              console.log('Error in newly assigned');
+app.get(
+  `/api/users/me/customers/newlyassigned`,
+  authenticate,
+  shouldBeUser,
+  (req, res) => {
+    // @ts-ignore
+    const _id = req.user._id;
+    User.findOne({ _id: '' + _id })
+      .populate({
+        path: 'customers',
+        match: { newlyAssigned: { $eq: true } }
+      })
+      .exec(function(err, resp) {
+        if (err) {
+          console.log('Error', err);
+          return res.status(500).send('Error sending data');
+        }
+        res.send(resp.customers);
+        const custArr = resp.customers;
+        custArr.forEach(c => {
+          Customer.findByIdAndUpdate(
+            c._id,
+            { $set: { newlyAssigned: false } },
+            (err, status) => {
+              if (err) {
+                console.log('Error in newly assigned');
+              }
             }
-          }
-        );
+          );
+        });
       });
-    });
-});
+  }
+);
 
 // To get info for displaying status chart
-app.get('/api/customers/charts', authenticate, (req, res) => {
+app.get('/api/customers/charts', authenticate, shouldBeAdmin, (req, res) => {
   let fCount = 0;
   let totalCount = 0;
 
@@ -265,6 +264,48 @@ app.get('/api/customers/charts', authenticate, (req, res) => {
       });
     });
   });
+});
+
+app.patch('/api/customers/:_id', authenticate, shouldBeUser, (req, res) => {
+  const feedbackData = req.body;
+  const callBack = (err, data) => {
+    if (!err) {
+      res.send(data);
+    } else {
+      res.status(500).send(err);
+    }
+  };
+
+  if (feedbackData.finished) {
+    feedbackData.finished = undefined;
+    Customer.findByIdAndUpdate(
+      req.params._id,
+      {
+        $push: { feedbacks: feedbackData },
+        $set: { finished: true }
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true
+      },
+      callBack
+    );
+  } else {
+    feedbackData.finished = undefined;
+    Customer.findByIdAndUpdate(
+      req.params._id,
+      {
+        $push: { feedbacks: feedbackData }
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true
+      },
+      callBack
+    );
+  }
 });
 
 app.use('/api/auth/users', authRoutes);

@@ -38,15 +38,17 @@ const customerSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  feedback: [
+  feedbacks: [
     {
       comment: {
-        type: String
+        type: String,
+        required: true
       },
       commentDate: {
-        type: String
+        type: String,
+        default: Date.now
       },
-      nextDate: {
+      nextCallDate: {
         type: String
       }
     }

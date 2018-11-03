@@ -28,7 +28,9 @@ const sendEmail = user => {
         </ul>
         <p>Please click on the below link to allow access:</p>
         <br>
-        localhost:4200/activate/${token}`
+        <a href='localhost:4200/activate/${token}' target='_blank'>Activate ${
+          user.firstName
+        } ${user.lastName}</a>`
       };
       transporter.sendMail(adminMailOptions, (err, res) => {
         if (err) {
