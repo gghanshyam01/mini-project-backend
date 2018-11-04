@@ -311,7 +311,7 @@ app.patch('/api/customers/:_id', authenticate, shouldBeUser, (req, res) => {
 app.use('/api/auth/users', authRoutes);
 
 app.get('*', (req, res) => {
-  res.sendFile('index.html');
+  res.sendFile('index.html', { root: __dirname + '/views' });
 });
 
 app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
