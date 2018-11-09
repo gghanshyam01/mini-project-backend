@@ -28,7 +28,7 @@ const sendEmail = user => {
         </ul>
         <p>Please click on the below link to allow access:</p>
         <br>
-        <a href='localhost:4200/activate/${token}' target='_blank'>Activate ${
+        <a href="https://motorhood-crm.herokuapp.com/activate/${token}" target='_blank'>Activate ${
           user.firstName
         } ${user.lastName}</a>`
       };
