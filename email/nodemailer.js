@@ -11,13 +11,13 @@ const smtpConfig = {
 
 const transporter = nodemailer.createTransport(smtpConfig);
 
-const sendEmail = user => {
+const sendEmail = (user, host, protocol) => {
   return user.generateAuthToken('accountActivate', '7d').then(token => {
     return new Promise((resolve, reject) => {
       const email = user.email;
       const adminMailOptions = {
-        from: 'Ghanshyam <gghanshyam01@gmail.com>',
-        to: 'ghanshyam.gupta@spit.ac.in',
+        from: 'Motorhood Mobility Activator <motmobdev@gmail.com>',
+        to: 'gghanshyam01@gmail.com',
         subject: 'New User added',
         text: 'text section',
         html: `Dear Admin, <br><br>A new user has registered with the CRM web app.\n
@@ -28,7 +28,7 @@ const sendEmail = user => {
         </ul>
         <p>Please click on the below link to allow access:</p>
         <br>
-        <a href="https://motorhood-crm.herokuapp.com/activate/${token}" target='_blank'>Activate ${
+        <a href="${protocol}://${host}/activate/${token}" target='_blank'>Activate ${
           user.firstName
         } ${user.lastName}</a>`
       };
@@ -36,7 +36,7 @@ const sendEmail = user => {
         if (err) {
           transporter.sendMail(
             {
-              from: 'gghanshyam01@gmail.com',
+              from: 'motmobdev@gmail.com',
               to: email,
               subject: 'Could not send account activation mail',
               text: 'Error message',

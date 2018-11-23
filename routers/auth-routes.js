@@ -33,7 +33,7 @@ const registerUser = (req, res) => {
   user
     .save()
     .then(() => {
-      sendEmail(user);
+      sendEmail(user, req.headers.host, req.protocol);
       res.status(200).send({
         msg:
           "User account created successfully. You'll be able to login if Admin activates your account within 7 days"

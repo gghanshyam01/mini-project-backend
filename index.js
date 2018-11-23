@@ -19,7 +19,7 @@ const { Customer } = require('./models/customer');
 const { User } = require('./models/user');
 
 const app = express();
-app.use(express.static(__dirname + '/views'));
+// app.use(express.static(__dirname + '/views'));
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, 'uploads/');
@@ -54,7 +54,7 @@ app.get('/api/users/me', authenticate, (req, res) => {
   console.log('inside route');
   // @ts-ignore
   const user = req.user;
-  console.log('Sending res');
+  console.log('Sending res', req.hostname);
   res.status(200).json(user);
 });
 
@@ -310,8 +310,8 @@ app.patch('/api/customers/:_id', authenticate, shouldBeUser, (req, res) => {
 
 app.use('/api/auth/users', authRoutes);
 
-app.get('*', (req, res) => {
-  res.sendFile('index.html', { root: __dirname + '/views' });
-});
+// app.get('*', (req, res) => {
+//   res.sendFile('index.html', { root: __dirname + '/views' });
+// });
 
 app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
